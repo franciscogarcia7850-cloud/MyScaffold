@@ -1,33 +1,45 @@
 package ragavi.com.myscaffold.ui.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
-import ragavi.com.myscaffold.ui.features.products.ProductFormScreen
-import ragavi.com.myscaffold.ui.features.products.ProductList
-import ragavi.com.myscaffold.ui.features.products.ProductViewModel
-
-enum class Screen {
-    List, Create
-}
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import ragavi.com.myscaffold.ui.features.tasks.TaskDetailScreen
+import ragavi.com.myscaffold.ui.features.tasks.TaskFormScreen
+import ragavi.com.myscaffold.ui.features.tasks.TaskList
+import ragavi.com.myscaffold.ui.features.tasks.TaskViewModel
 
 @Composable
 fun AppNavigation() {
-    val productViewModel: ProductViewModel = viewModel()
+    // Un solo ViewModel compartido por todas las pantallas
+    val taskViewModel: TaskViewModel = viewModel()
+    val navController = rememberNavController()
 
-    var currentScreen by remember { mutableStateOf(Screen.List) }
-
-    when (currentScreen) {
-        Screen.List -> ProductList(
-            viewModel = productViewModel,
-            onNavigateToCreate = { currentScreen = Screen.Create }
-        )
-        Screen.Create -> ProductFormScreen(
-            viewModel = productViewModel,
-            onNavigateBack = { currentScreen = Screen.List }
-        )
+    NavHost(navController = navController, startDestination = TaskListRoute) {
+        composable<TaskListRoute> {
+            TaskList(
+                viewModel = taskViewModel,
+                onNavigateToCreate = { navController.navigate(TaskCreateRoute) },
+                // Se envía el id de la tarea como argumento
+                onNavigateToDetail = { id -> navController.navigate(TaskDetailRoute(taskId = id)) }
+            )
+        }
+        composable<TaskCreateRoute> {
+            TaskFormScreen(
+                viewModel = taskViewModel,
+                onNavigateBack = { navController.popBackStack(TaskListRoute, inclusive = false) }
+            )
+        }
+        composable<TaskDetailRoute> { backStackEntry ->
+            // Se recibe el argumento
+            val args: TaskDetailRoute = backStackEntry.toRoute()
+            TaskDetailScreen(
+                taskId = args.taskId,
+                viewModel = taskViewModel,
+                onNavigateBack = { navController.popBackStack(TaskListRoute, inclusive = false) }
+            )
+        }
     }
 }
